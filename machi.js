@@ -70,63 +70,6 @@
     pctx.stroke();
   }
 
-  // Kenney Isometric Landscape の草・道タイル画像。読み込めた場合は色塗りの代わりに使う。
-  const GRASS_FILES = [
-    "png/landscapeTiles_016.png",
-    "png/landscapeTiles_022.png",
-    "png/landscapeTiles_036.png",
-    "png/landscapeTiles_098.png"
-  ];
-  const ROAD_FILES = [
-    "png/landscapeTiles_087.png",
-    "png/landscapeTiles_088.png",
-    "png/landscapeTiles_094.png",
-    "png/landscapeTiles_095.png",
-    "png/landscapeTiles_102.png",
-    "png/landscapeTiles_106.png"
-  ];
-  function loadImageSet(files){
-    return files.map(function(src){
-      const img = new Image();
-      img.onload = function(){ if (typeof draw === "function") draw(); };
-      img.onerror = function(){ /* 画像がまだ無ければ色塗りにフォールバックする */ };
-      img.src = src;
-      return img;
-    });
-  }
-  const grassImages = loadImageSet(GRASS_FILES);
-  const roadImages_landscape = loadImageSet(ROAD_FILES);
-
-  function isImageReady(img){
-    return img && img.complete && img.naturalWidth > 0;
-  }
-
-  // gx,gyから常に同じ画像を選ぶための簡易ハッシュ（毎フレーム同じ絵になるように）
-  function tileHash(gx, gy){
-    const n = ((gx * 928371 + gy * 123457) >>> 0);
-    return n;
-  }
-
-  function drawTileImage(gx, gy, isRoad){
-    const set = isRoad ? roadImages_landscape : grassImages;
-    const idx = tileHash(gx, gy) % set.length;
-    const img = set[idx];
-    if (gx === 0 && gy === 0){
-      console.log("[DEBUG tile]", { isRoad: isRoad, setLength: set.length, idx: idx, img: img, complete: img && img.complete, naturalWidth: img && img.naturalWidth });
-    }
-    if (!isImageReady(img)) return false;
-    const p = gridToScreen(gx, gy);
-    const scale = (TILE_W / img.naturalWidth) * 1.06;
-    const w = Math.round(img.naturalWidth * scale);
-    const h = Math.round(img.naturalHeight * scale);
-    const x = Math.round(p.x - w / 2);
-    // タイル画像は底面菱形の中心が画像の中央よりやや下にあることが多いため、
-    // 画像下端をタイル中心の少し下に合わせる
-    const y = Math.round(p.y - h / 2 - (TILE_H * 0.15));
-    pctx.drawImage(img, x, y, w, h);
-    return true;
-  }
-
   /* ============================================================
      建物描画: 壁パーツ（ランダム）+ 屋根パーツ（感情で固定、なしもあり）を重ねて描く
      Kenney Isometric Buildings のタイル画像を使用する
@@ -298,10 +241,9 @@
         const g = Math.round(base.g + (bgColor.g - base.g) * haze);
         const b2 = Math.round(base.b + (bgColor.b - base.b) * haze);
 
-        const usedImage = drawTileImage(gx, gy, isRoad);
-        if (!usedImage){
-          drawTile(gx, gy, "rgb(" + r + "," + g + "," + b2 + ")", "rgba(255,255,255,0.2)");
-        }
+        // 地形タイル画像は厚みのある立体ブロックとして作られており、
+        // 隙間なく敷き詰めるグリッド地面には合わなかったため、色塗り表示に統一する。
+        drawTile(gx, gy, "rgb(" + r + "," + g + "," + b2 + ")", "rgba(255,255,255,0.2)");
       }
     }
 

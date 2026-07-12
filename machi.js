@@ -1,7 +1,6 @@
 (function(){
   "use strict";
 
-  
   const canvas = document.getElementById("c");
   const ctx = canvas.getContext("2d");
   let W, H;
@@ -163,6 +162,18 @@
       // 屋根の底辺 = 壁の上端（wallY）にぴったり合わせる
       const roofY = wallY - roofH;
       pctx.drawImage(roofImg, roofX, roofY, roofW, roofH);
+
+      // --- デバッグ出力（一時的） ---
+      console.log("[DEBUG building]", {
+        emoKey: emoKey,
+        p_x: p.x, p_y: p.y,
+        wallNaturalW: wallImg.naturalWidth, wallNaturalH: wallImg.naturalHeight,
+        wallScale: scale, wallW: wallW, wallH: wallH, wallX: wallX, wallY: wallY,
+        roofNaturalW: roofImg.naturalWidth, roofNaturalH: roofImg.naturalHeight,
+        roofScale: roofScale, roofW: roofW, roofH: roofH, roofX: roofX, roofY: roofY,
+        wallCenterX: wallX + wallW / 2,
+        roofCenterX: roofX + roofW / 2
+      });
     }
 
     // ひらめきの建物は光る窓を追加

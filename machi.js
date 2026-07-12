@@ -72,29 +72,38 @@
 
   /* ============================================================
      建物描画（感情ごとにスタイルを分ける）
-     箱型: 屋根(上面) + 左壁 + 右壁 の3面で立体感を出す
+     Kenney Isometric Buildings のタイル画像を使用する
      ============================================================ */
   const BUILDING_STYLES = {
-    joy:      { roof: "#F2C879", wallL: "#D9A24E", wallR: "#C68C3A", height: 16, label: "パン屋" },
-    anger:    { roof: "#B0665A", wallL: "#8C4E44", wallR: "#743F37", height: 21, label: "工房" },
-    sorrow:   { roof: "#7C93A6", wallL: "#5F7789", wallR: "#4C6272", height: 14, label: "図書室" },
-    surprise: { roof: "#E0C64F", wallL: "#C2A93B", wallR: "#A48F2E", height: 24, label: "塔" },
-    thought:  { roof: "#8FA07C", wallL: "#6F805F", wallR: "#5A6A4C", height: 15, label: "書斎" },
-    insight:  { roof: "#F2D98A", wallL: "#E0BE5E", wallR: "#C9A548", height: 17, label: "アトリエ", glow: true },
-    calm:     { roof: "#D8CBB0", wallL: "#BCAE90", wallR: "#A69777", height: 12, label: "民家" }
+    joy:      { file: "png/buildingTiles_123.png", label: "パン屋" },
+    anger:    { file: "png/buildingTiles_113.png", label: "工房" },
+    sorrow:   { file: "png/buildingTiles_092.png", label: "図書室" },
+    surprise: { file: "png/buildingTiles_114.png", label: "塔" },
+    thought:  { file: "png/buildingTiles_100.png", label: "書斎" },
+    insight:  { file: "png/buildingTiles_124.png", label: "アトリエ", glow: true },
+    calm:     { file: "png/buildingTiles_107.png", label: "民家" }
   };
+
+  // 画像を事前読み込みしておく。読み込み中はプレースホルダーの菱形だけ描く。
+  const buildingImages = {};
+  let imagesLoaded = 0;
+  const imageKeys = Object.keys(BUILDING_STYLES);
+  imageKeys.forEach(function(key){
+    const img = new Image();
+    img.onload = function(){
+      imagesLoaded++;
+      draw();
+    };
+    img.src = BUILDING_STYLES[key].file;
+    buildingImages[key] = img;
+  });
 
   function drawBuilding(gx, gy, emoKey, sizeScale){
     const style = BUILDING_STYLES[emoKey] || BUILDING_STYLES.calm;
     const p = gridToScreen(gx, gy);
-    const h = style.height * (sizeScale || 1);
+    const img = buildingImages[emoKey];
 
-    // タイルいっぱいに建てず、一回り小さくして周囲に道の隙間を作る
-    const footprint = 0.68;
-    const halfW = (TILE_W / 2) * footprint;
-    const halfH = (TILE_H / 2) * footprint;
-
-    // 足元の土台（タイルとほぼ同じ大きさの薄い板）を先に敷いて、地面との継ぎ目を柔らかくする
+    // 足元の土台の影を先に敷いて、地面との継ぎ目を柔らかくする
     const baseHalfW = TILE_W / 2 * 0.82;
     const baseHalfH = TILE_H / 2 * 0.82;
     pctx.beginPath();
@@ -103,55 +112,38 @@
     pctx.lineTo(p.x, p.y + baseHalfH);
     pctx.lineTo(p.x - baseHalfW, p.y);
     pctx.closePath();
-    pctx.fillStyle = "rgba(60, 70, 55, 0.14)";
+    pctx.fillStyle = "rgba(60, 70, 55, 0.16)";
     pctx.fill();
 
-    const top = p.y - h;
+    if (!img || !img.complete || img.naturalWidth === 0){
+      // 画像が未読込の間は簡易的な菱形プレースホルダーを表示
+      pctx.beginPath();
+      pctx.moveTo(p.x, p.y - baseHalfH);
+      pctx.lineTo(p.x + baseHalfW, p.y);
+      pctx.lineTo(p.x, p.y + baseHalfH);
+      pctx.lineTo(p.x - baseHalfW, p.y);
+      pctx.closePath();
+      pctx.fillStyle = "rgba(120,120,110,0.4)";
+      pctx.fill();
+      return;
+    }
 
-    // 左壁
-    pctx.beginPath();
-    pctx.moveTo(p.x - halfW, p.y);
-    pctx.lineTo(p.x, p.y + halfH);
-    pctx.lineTo(p.x, top + halfH);
-    pctx.lineTo(p.x - halfW, top);
-    pctx.closePath();
-    pctx.fillStyle = style.wallL;
-    pctx.fill();
+    // Kenneyのタイル画像はタイル底辺の中央を基準に描かれているため、
+    // 画像の横幅をTILE_Wに合わせて拡大縮小し、底辺中央がタイル中心に来るよう配置する
+    const scale = (TILE_W / img.naturalWidth) * 1.9 * (sizeScale || 1);
+    const drawW = img.naturalWidth * scale;
+    const drawH = img.naturalHeight * scale;
+    const drawX = p.x - drawW / 2;
+    const drawY = p.y - drawH + (TILE_H / 2) * 0.5; // 底面がタイル面に接するよう調整
 
-    // 右壁
-    pctx.beginPath();
-    pctx.moveTo(p.x + halfW, p.y);
-    pctx.lineTo(p.x, p.y + halfH);
-    pctx.lineTo(p.x, top + halfH);
-    pctx.lineTo(p.x + halfW, top);
-    pctx.closePath();
-    pctx.fillStyle = style.wallR;
-    pctx.fill();
-
-    // 屋根（上面の菱形）
-    pctx.beginPath();
-    pctx.moveTo(p.x, top - halfH);
-    pctx.lineTo(p.x + halfW, top);
-    pctx.lineTo(p.x, top + halfH);
-    pctx.lineTo(p.x - halfW, top);
-    pctx.closePath();
-    pctx.fillStyle = style.roof;
-    pctx.fill();
+    pctx.drawImage(img, drawX, drawY, drawW, drawH);
 
     // ひらめきの建物は光る窓を追加
     if (style.glow){
       pctx.fillStyle = "rgba(255, 240, 180, 0.9)";
-      pctx.fillRect(p.x - 3, top + halfH + 2, 2, 2);
-      pctx.fillRect(p.x + 1, top + halfH + 2, 2, 2);
+      pctx.fillRect(p.x - 3, drawY + drawH * 0.35, 2, 2);
+      pctx.fillRect(p.x + 1, drawY + drawH * 0.35, 2, 2);
     }
-
-    pctx.strokeStyle = "rgba(0,0,0,0.18)";
-    pctx.lineWidth = 1;
-    pctx.beginPath();
-    pctx.moveTo(p.x - halfW, p.y);
-    pctx.lineTo(p.x, p.y + halfH);
-    pctx.lineTo(p.x + halfW, p.y);
-    pctx.stroke();
   }
 
   /* ============================================================

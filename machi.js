@@ -154,7 +154,9 @@
 
     pctx.drawImage(wallImg, wallX, wallY, wallW, wallH);
 
-    // 屋根パーツがあれば、壁の上端にぴったり接続して重ねて描く
+    // 屋根パーツがあれば、壁の上端に重ねて描く。
+    // 屋根の底辺・壁の開口部はどちらも山型（アイソメトリックな菱形の縁）をしているため、
+    // フレーム同士を単純に接触させると両端に隙間ができる。屋根を意図的に沈み込ませて隠す。
     if (roofImg && roofImg.complete && roofImg.naturalWidth > 0){
       const roofScale = (TILE_W / roofImg.naturalWidth) * 1.02 * (sizeScale || 1);
       const roofW = Math.round(roofImg.naturalWidth * roofScale);
@@ -162,8 +164,9 @@
       // 壁と同じ中心x座標(wallX + wallW/2)から屋根の中心を計算し、必ず同じ整数中心に揃える
       const centerX = wallX + Math.round(wallW / 2);
       const roofX = Math.round(centerX - roofW / 2);
-      // 屋根の底辺 = 壁の上端（wallY）にぴったり合わせる
-      const roofY = wallY - roofH;
+      // 屋根底面の山型の縁が壁の開口部の縁に隠れるよう、屋根を壁の中に沈み込ませる
+      const sinkAmount = Math.round(roofH * 0.42);
+      const roofY = wallY - roofH + sinkAmount;
       pctx.drawImage(roofImg, roofX, roofY, roofW, roofH);
     }
 

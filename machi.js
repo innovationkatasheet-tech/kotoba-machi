@@ -111,6 +111,9 @@
     const set = isRoad ? roadImages_landscape : grassImages;
     const idx = tileHash(gx, gy) % set.length;
     const img = set[idx];
+    if (gx === 0 && gy === 0){
+      console.log("[DEBUG tile]", { isRoad: isRoad, setLength: set.length, idx: idx, img: img, complete: img && img.complete, naturalWidth: img && img.naturalWidth });
+    }
     if (!isImageReady(img)) return false;
     const p = gridToScreen(gx, gy);
     const scale = (TILE_W / img.naturalWidth) * 1.06;

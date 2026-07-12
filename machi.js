@@ -130,11 +130,11 @@
 
     // Kenneyのタイル画像はタイル底辺の中央を基準に描かれているため、
     // 画像の横幅をTILE_Wに合わせて拡大縮小し、底辺中央がタイル中心に来るよう配置する
-    const scale = (TILE_W / img.naturalWidth) * 1.9 * (sizeScale || 1);
+    const scale = (TILE_W / img.naturalWidth) * 1.02 * (sizeScale || 1);
     const drawW = img.naturalWidth * scale;
     const drawH = img.naturalHeight * scale;
     const drawX = p.x - drawW / 2;
-    const drawY = p.y - drawH + (TILE_H / 2) * 0.5; // 底面がタイル面に接するよう調整
+    const drawY = p.y - drawH + (TILE_H / 2) * 0.62; // 底面がタイル面に接するよう調整
 
     pctx.drawImage(img, drawX, drawY, drawW, drawH);
 
@@ -174,12 +174,29 @@
 
     const bgColor = { r: 183, g: 214, b: 194 }; // body背景色 #B7D6C2 に溶け込ませる
 
+    // 建物が建っているタイルに隣接する空きタイルは「道」として扱う。
+    // key "gx,gy" -> true のセットで管理する。
+    const roadSet = {};
+    const buildingSet = {};
+    for (const b of buildings) buildingSet[b.gx + "," + b.gy] = true;
+    const neighborOffsets = [[1,0],[-1,0],[0,1],[0,-1]];
+    for (const b of buildings){
+      for (const off of neighborOffsets){
+        const nx = b.gx + off[0], ny = b.gy + off[1];
+        const key = nx + "," + ny;
+        if (!buildingSet[key]) roadSet[key] = true;
+      }
+    }
+
     // 地面タイルをグリッド状に敷く。中心からの距離が遠いほど背景色に霞ませ、
     // 奥行き（地平線に向かって薄れていく感じ）を出す。
     for (let gx = -GRID_RADIUS; gx <= GRID_RADIUS; gx++){
       for (let gy = -GRID_RADIUS; gy <= GRID_RADIUS; gy++){
+        const isRoad = roadSet[gx + "," + gy];
         const checker = (gx + gy) % 2 === 0;
-        const base = checker ? { r: 169, g: 203, b: 181 } : { r: 159, g: 194, b: 171 };
+        const base = isRoad
+          ? (checker ? { r: 168, g: 165, b: 158 } : { r: 158, g: 155, b: 149 }) // 道はグレー系
+          : (checker ? { r: 169, g: 203, b: 181 } : { r: 159, g: 194, b: 171 }); // 地面は緑系
 
         // 画面奥（gx+gyが小さい方向）ほど霞ませる
         const depth = (gx + gy + GRID_RADIUS * 2) / (GRID_RADIUS * 4); // 0(奥)〜1(手前)
@@ -187,9 +204,9 @@
 
         const r = Math.round(base.r + (bgColor.r - base.r) * haze);
         const g = Math.round(base.g + (bgColor.g - base.g) * haze);
-        const b = Math.round(base.b + (bgColor.b - base.b) * haze);
+        const b2 = Math.round(base.b + (bgColor.b - base.b) * haze);
 
-        drawTile(gx, gy, "rgb(" + r + "," + g + "," + b + ")", "rgba(255,255,255,0.2)");
+        drawTile(gx, gy, "rgb(" + r + "," + g + "," + b2 + ")", "rgba(255,255,255,0.2)");
       }
     }
 

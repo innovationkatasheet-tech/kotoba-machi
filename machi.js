@@ -145,35 +145,26 @@
 
     // Kenneyのタイル画像はタイル底辺の中央を基準に描かれているため、
     // 画像の横幅をTILE_Wに合わせて拡大縮小し、底辺中央がタイル中心に来るよう配置する
+    // 低解像度キャンバス上では非整数座標がサブピクセルのズレを生みやすいため、整数に丸める。
     const scale = (TILE_W / wallImg.naturalWidth) * 1.02 * (sizeScale || 1);
-    const wallW = wallImg.naturalWidth * scale;
-    const wallH = wallImg.naturalHeight * scale;
-    const wallX = p.x - wallW / 2;
-    const wallY = p.y - wallH + (TILE_H / 2) * 0.62; // 底面がタイル面に接するよう調整
+    const wallW = Math.round(wallImg.naturalWidth * scale);
+    const wallH = Math.round(wallImg.naturalHeight * scale);
+    const wallX = Math.round(p.x - wallW / 2);
+    const wallY = Math.round(p.y - wallH + (TILE_H / 2) * 0.62); // 底面がタイル面に接するよう調整
 
     pctx.drawImage(wallImg, wallX, wallY, wallW, wallH);
 
     // 屋根パーツがあれば、壁の上端にぴったり接続して重ねて描く
     if (roofImg && roofImg.complete && roofImg.naturalWidth > 0){
       const roofScale = (TILE_W / roofImg.naturalWidth) * 1.02 * (sizeScale || 1);
-      const roofW = roofImg.naturalWidth * roofScale;
-      const roofH = roofImg.naturalHeight * roofScale;
-      const roofX = p.x - roofW / 2;
+      const roofW = Math.round(roofImg.naturalWidth * roofScale);
+      const roofH = Math.round(roofImg.naturalHeight * roofScale);
+      // 壁と同じ中心x座標(wallX + wallW/2)から屋根の中心を計算し、必ず同じ整数中心に揃える
+      const centerX = wallX + Math.round(wallW / 2);
+      const roofX = Math.round(centerX - roofW / 2);
       // 屋根の底辺 = 壁の上端（wallY）にぴったり合わせる
       const roofY = wallY - roofH;
       pctx.drawImage(roofImg, roofX, roofY, roofW, roofH);
-
-      // --- デバッグ出力（一時的） ---
-      console.log("[DEBUG building]", {
-        emoKey: emoKey,
-        p_x: p.x, p_y: p.y,
-        wallNaturalW: wallImg.naturalWidth, wallNaturalH: wallImg.naturalHeight,
-        wallScale: scale, wallW: wallW, wallH: wallH, wallX: wallX, wallY: wallY,
-        roofNaturalW: roofImg.naturalWidth, roofNaturalH: roofImg.naturalHeight,
-        roofScale: roofScale, roofW: roofW, roofH: roofH, roofX: roofX, roofY: roofY,
-        wallCenterX: wallX + wallW / 2,
-        roofCenterX: roofX + roofW / 2
-      });
     }
 
     // ひらめきの建物は光る窓を追加

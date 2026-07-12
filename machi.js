@@ -71,37 +71,52 @@
   }
 
   /* ============================================================
-     建物描画（感情ごとにスタイルを分ける）
+     建物描画: 壁パーツ（ランダム）+ 屋根パーツ（感情で固定、なしもあり）を重ねて描く
      Kenney Isometric Buildings のタイル画像を使用する
      ============================================================ */
-  const BUILDING_STYLES = {
-    joy:      { file: "png/buildingTiles_018.png", label: "パン屋" },
-    anger:    { file: "png/buildingTiles_014.png", label: "工房" },
-    sorrow:   { file: "png/buildingTiles_007.png", label: "図書室" },
-    surprise: { file: "png/buildingTiles_019.png", label: "塔" },
-    thought:  { file: "png/buildingTiles_002.png", label: "書斎" },
-    insight:  { file: "png/buildingTiles_020.png", label: "アトリエ", glow: true },
-    calm:     { file: "png/buildingTiles_000.png", label: "民家" }
+  // 壁パーツの候補（上が空洞の完成箱）。建物ごとにこの中からランダムに1つ選ぶ。
+  const WALL_FILES = [
+    "png/buildingTiles_000.png",
+    "png/buildingTiles_007.png",
+    "png/buildingTiles_014.png"
+  ];
+  // 感情ごとの屋根パーツ。nullの場合は屋根を乗せず、平屋根のまま。
+  const ROOF_STYLES = {
+    joy:      { file: "png/buildingTiles_069.png", label: "パン屋" },
+    anger:    { file: "png/buildingTiles_065.png", label: "工房" },
+    sorrow:   { file: null, label: "図書室" },
+    surprise: { file: "png/buildingTiles_074.png", label: "塔" },
+    thought:  { file: "png/buildingTiles_057.png", label: "書斎" },
+    insight:  { file: null, label: "アトリエ", glow: true },
+    calm:     { file: null, label: "民家" }
   };
 
   // 画像を事前読み込みしておく。読み込み中はプレースホルダーの菱形だけ描く。
-  const buildingImages = {};
-  let imagesLoaded = 0;
-  const imageKeys = Object.keys(BUILDING_STYLES);
-  imageKeys.forEach(function(key){
+  const wallImages = WALL_FILES.map(function(src){
     const img = new Image();
-    img.onload = function(){
-      imagesLoaded++;
-      draw();
-    };
-    img.src = BUILDING_STYLES[key].file;
-    buildingImages[key] = img;
+    img.onload = draw;
+    img.src = src;
+    return img;
+  });
+  const roofImages = {};
+  Object.keys(ROOF_STYLES).forEach(function(key){
+    const file = ROOF_STYLES[key].file;
+    if (!file) return;
+    const img = new Image();
+    img.onload = draw;
+    img.src = file;
+    roofImages[key] = img;
   });
 
-  function drawBuilding(gx, gy, emoKey, sizeScale){
-    const style = BUILDING_STYLES[emoKey] || BUILDING_STYLES.calm;
+  function pickWallIndex(){
+    return Math.floor(Math.random() * WALL_FILES.length);
+  }
+
+  function drawBuilding(gx, gy, emoKey, sizeScale, wallIdx){
+    const style = ROOF_STYLES[emoKey] || ROOF_STYLES.calm;
     const p = gridToScreen(gx, gy);
-    const img = buildingImages[emoKey];
+    const wallImg = wallImages[wallIdx !== undefined ? wallIdx : 0];
+    const roofImg = roofImages[emoKey];
 
     // 足元の土台の影を先に敷いて、地面との継ぎ目を柔らかくする
     const baseHalfW = TILE_W / 2 * 0.82;
@@ -115,7 +130,7 @@
     pctx.fillStyle = "rgba(60, 70, 55, 0.16)";
     pctx.fill();
 
-    if (!img || !img.complete || img.naturalWidth === 0){
+    if (!wallImg || !wallImg.complete || wallImg.naturalWidth === 0){
       // 画像が未読込の間は簡易的な菱形プレースホルダーを表示
       pctx.beginPath();
       pctx.moveTo(p.x, p.y - baseHalfH);
@@ -130,19 +145,30 @@
 
     // Kenneyのタイル画像はタイル底辺の中央を基準に描かれているため、
     // 画像の横幅をTILE_Wに合わせて拡大縮小し、底辺中央がタイル中心に来るよう配置する
-    const scale = (TILE_W / img.naturalWidth) * 1.02 * (sizeScale || 1);
-    const drawW = img.naturalWidth * scale;
-    const drawH = img.naturalHeight * scale;
-    const drawX = p.x - drawW / 2;
-    const drawY = p.y - drawH + (TILE_H / 2) * 0.62; // 底面がタイル面に接するよう調整
+    const scale = (TILE_W / wallImg.naturalWidth) * 1.02 * (sizeScale || 1);
+    const wallW = wallImg.naturalWidth * scale;
+    const wallH = wallImg.naturalHeight * scale;
+    const wallX = p.x - wallW / 2;
+    const wallY = p.y - wallH + (TILE_H / 2) * 0.62; // 底面がタイル面に接するよう調整
 
-    pctx.drawImage(img, drawX, drawY, drawW, drawH);
+    pctx.drawImage(wallImg, wallX, wallY, wallW, wallH);
+
+    // 屋根パーツがあれば、壁の上端に重ねて描く
+    if (roofImg && roofImg.complete && roofImg.naturalWidth > 0){
+      const roofScale = (TILE_W / roofImg.naturalWidth) * 1.02 * (sizeScale || 1);
+      const roofW = roofImg.naturalWidth * roofScale;
+      const roofH = roofImg.naturalHeight * roofScale;
+      const roofX = p.x - roofW / 2;
+      // 壁の上端（開口部）のやや上に屋根の底を合わせる
+      const roofY = wallY - roofH + wallH * 0.14;
+      pctx.drawImage(roofImg, roofX, roofY, roofW, roofH);
+    }
 
     // ひらめきの建物は光る窓を追加
     if (style.glow){
       pctx.fillStyle = "rgba(255, 240, 180, 0.9)";
-      pctx.fillRect(p.x - 3, drawY + drawH * 0.35, 2, 2);
-      pctx.fillRect(p.x + 1, drawY + drawH * 0.35, 2, 2);
+      pctx.fillRect(p.x - 3, wallY + wallH * 0.3, 2, 2);
+      pctx.fillRect(p.x + 1, wallY + wallH * 0.3, 2, 2);
     }
   }
 
@@ -159,7 +185,7 @@
     if (exists) return;
     const emoKey = EMOTION_CYCLE[cycleIdx % EMOTION_CYCLE.length];
     cycleIdx++;
-    buildings.push({ gx: gx, gy: gy, emoKey: emoKey, sizeScale: 0.92 + Math.random() * 0.16 });
+    buildings.push({ gx: gx, gy: gy, emoKey: emoKey, sizeScale: 0.92 + Math.random() * 0.16, wallIdx: pickWallIndex() });
     draw();
   }
 
@@ -225,7 +251,7 @@
     // 建物は奥から手前へ（gx+gyが小さい順）に描画してZオーダーを正しくする
     const sorted = buildings.slice().sort(function(a, b){ return (a.gx + a.gy) - (b.gx + b.gy); });
     for (const b of sorted){
-      drawBuilding(b.gx, b.gy, b.emoKey, b.sizeScale);
+      drawBuilding(b.gx, b.gy, b.emoKey, b.sizeScale, b.wallIdx);
     }
 
     // 画面の上端（遠景）を背景色にフェードさせ、奥行きの終わりを演出する

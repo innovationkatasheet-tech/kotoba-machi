@@ -75,13 +75,13 @@
      Kenney Isometric Buildings のタイル画像を使用する
      ============================================================ */
   const BUILDING_STYLES = {
-    joy:      { file: "png/buildingTiles_123.png", label: "パン屋" },
-    anger:    { file: "png/buildingTiles_113.png", label: "工房" },
-    sorrow:   { file: "png/buildingTiles_092.png", label: "図書室" },
-    surprise: { file: "png/buildingTiles_114.png", label: "塔" },
-    thought:  { file: "png/buildingTiles_100.png", label: "書斎" },
-    insight:  { file: "png/buildingTiles_124.png", label: "アトリエ", glow: true },
-    calm:     { file: "png/buildingTiles_107.png", label: "民家" }
+    joy:      { file: "png/buildingTiles_018.png", label: "パン屋" },
+    anger:    { file: "png/buildingTiles_014.png", label: "工房" },
+    sorrow:   { file: "png/buildingTiles_007.png", label: "図書室" },
+    surprise: { file: "png/buildingTiles_019.png", label: "塔" },
+    thought:  { file: "png/buildingTiles_002.png", label: "書斎" },
+    insight:  { file: "png/buildingTiles_020.png", label: "アトリエ", glow: true },
+    calm:     { file: "png/buildingTiles_000.png", label: "民家" }
   };
 
   // 画像を事前読み込みしておく。読み込み中はプレースホルダーの菱形だけ描く。

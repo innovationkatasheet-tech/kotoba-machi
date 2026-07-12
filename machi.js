@@ -70,6 +70,60 @@
     pctx.stroke();
   }
 
+  // Kenney Isometric Landscape の草・道タイル画像。読み込めた場合は色塗りの代わりに使う。
+  const GRASS_FILES = [
+    "png/landscapeTiles_016.png",
+    "png/landscapeTiles_022.png",
+    "png/landscapeTiles_036.png",
+    "png/landscapeTiles_098.png"
+  ];
+  const ROAD_FILES = [
+    "png/landscapeTiles_087.png",
+    "png/landscapeTiles_088.png",
+    "png/landscapeTiles_094.png",
+    "png/landscapeTiles_095.png",
+    "png/landscapeTiles_102.png",
+    "png/landscapeTiles_106.png"
+  ];
+  function loadImageSet(files){
+    return files.map(function(src){
+      const img = new Image();
+      img.onload = function(){ if (typeof draw === "function") draw(); };
+      img.onerror = function(){ /* 画像がまだ無ければ色塗りにフォールバックする */ };
+      img.src = src;
+      return img;
+    });
+  }
+  const grassImages = loadImageSet(GRASS_FILES);
+  const roadImages_landscape = loadImageSet(ROAD_FILES);
+
+  function isImageReady(img){
+    return img && img.complete && img.naturalWidth > 0;
+  }
+
+  // gx,gyから常に同じ画像を選ぶための簡易ハッシュ（毎フレーム同じ絵になるように）
+  function tileHash(gx, gy){
+    const n = ((gx * 928371 + gy * 123457) >>> 0);
+    return n;
+  }
+
+  function drawTileImage(gx, gy, isRoad){
+    const set = isRoad ? roadImages_landscape : grassImages;
+    const idx = tileHash(gx, gy) % set.length;
+    const img = set[idx];
+    if (!isImageReady(img)) return false;
+    const p = gridToScreen(gx, gy);
+    const scale = (TILE_W / img.naturalWidth) * 1.06;
+    const w = Math.round(img.naturalWidth * scale);
+    const h = Math.round(img.naturalHeight * scale);
+    const x = Math.round(p.x - w / 2);
+    // タイル画像は底面菱形の中心が画像の中央よりやや下にあることが多いため、
+    // 画像下端をタイル中心の少し下に合わせる
+    const y = Math.round(p.y - h / 2 - (TILE_H * 0.15));
+    pctx.drawImage(img, x, y, w, h);
+    return true;
+  }
+
   /* ============================================================
      建物描画: 壁パーツ（ランダム）+ 屋根パーツ（感情で固定、なしもあり）を重ねて描く
      Kenney Isometric Buildings のタイル画像を使用する
@@ -170,11 +224,14 @@
       pctx.drawImage(roofImg, roofX, roofY, roofW, roofH);
     }
 
-    // ひらめきの建物は光る窓を追加
+    // ひらめきの建物は、壁全体にごく薄い暖色のオーラを重ねて光っている印象を出す
+    // （画像に描かれた窓の位置に依存しないよう、個別の四角は描かない）
     if (style.glow){
-      pctx.fillStyle = "rgba(255, 240, 180, 0.9)";
-      pctx.fillRect(p.x - 3, wallY + wallH * 0.3, 2, 2);
-      pctx.fillRect(p.x + 1, wallY + wallH * 0.3, 2, 2);
+      pctx.save();
+      pctx.globalCompositeOperation = "source-atop";
+      pctx.fillStyle = "rgba(255, 226, 140, 0.22)";
+      pctx.fillRect(wallX, wallY, wallW, wallH);
+      pctx.restore();
     }
   }
 
@@ -238,7 +295,10 @@
         const g = Math.round(base.g + (bgColor.g - base.g) * haze);
         const b2 = Math.round(base.b + (bgColor.b - base.b) * haze);
 
-        drawTile(gx, gy, "rgb(" + r + "," + g + "," + b2 + ")", "rgba(255,255,255,0.2)");
+        const usedImage = drawTileImage(gx, gy, isRoad);
+        if (!usedImage){
+          drawTile(gx, gy, "rgb(" + r + "," + g + "," + b2 + ")", "rgba(255,255,255,0.2)");
+        }
       }
     }
 

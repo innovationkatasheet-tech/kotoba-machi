@@ -165,7 +165,7 @@
       const centerX = wallX + Math.round(wallW / 2);
       const roofX = Math.round(centerX - roofW / 2);
       // 屋根底面の山型の縁が壁の開口部の縁に隠れるよう、屋根を壁の中に沈み込ませる
-      const sinkAmount = Math.round(roofH * 0.52);
+      const sinkAmount = Math.round(roofH * 0.7);
       const roofY = wallY - roofH + sinkAmount;
       pctx.drawImage(roofImg, roofX, roofY, roofW, roofH);
     }

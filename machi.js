@@ -153,14 +153,14 @@
 
     pctx.drawImage(wallImg, wallX, wallY, wallW, wallH);
 
-    // 屋根パーツがあれば、壁の上端に重ねて描く
+    // 屋根パーツがあれば、壁の上端にぴったり接続して重ねて描く
     if (roofImg && roofImg.complete && roofImg.naturalWidth > 0){
       const roofScale = (TILE_W / roofImg.naturalWidth) * 1.02 * (sizeScale || 1);
       const roofW = roofImg.naturalWidth * roofScale;
       const roofH = roofImg.naturalHeight * roofScale;
       const roofX = p.x - roofW / 2;
-      // 壁の上端（開口部）のやや上に屋根の底を合わせる
-      const roofY = wallY - roofH + wallH * 0.14;
+      // 屋根の底辺 = 壁の上端（wallY）にぴったり合わせる
+      const roofY = wallY - roofH;
       pctx.drawImage(roofImg, roofX, roofY, roofW, roofH);
     }
 
